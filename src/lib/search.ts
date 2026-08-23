@@ -385,14 +385,17 @@ export async function findProducts(query: string): Promise<SearchResponse> {
   const cached = await getCachedSearch<SearchResponse>(trimmed);
   if (cached && cached.products.length > 0) return cached;
 
+  const pureMode = process.env.SCRAPING_MODE === "pure" || process.env.USE_SERPAPI === "false";
   let products: ProductSeed[] = [];
   try {
-    products = await liveProducts(trimmed);
-    if (products.length > 0 && products.length < TARGET_RESULTS) {
-      products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
+    if (!pureMode) {
+      products = await liveProducts(trimmed);
+      if (products.length > 0 && products.length < TARGET_RESULTS) {
+        products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
+      }
     }
-    // Hybrid fallback: SerpAPI quota / thin results → Brave + Cheerio
-    if (products.length < 20) {
+    // Pure scraping ($0) — primary when pureMode, fallback otherwise
+    if (pureMode || products.length < 20) {
       const market = marketForQuery(trimmed);
       const brave = await braveFallbackProducts(trimmed, market);
       if (brave.length > 0) {
