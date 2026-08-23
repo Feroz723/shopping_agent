@@ -1,6 +1,7 @@
 import { Product, SearchResponse } from "./types";
 import { getCachedSearch, setCachedSearch } from "./cache";
 import { prisma } from "./db";
+import { braveFallbackProducts } from "./search-brave";
 
 type SerpProduct = {
   title?: string;
@@ -389,6 +390,37 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     products = await liveProducts(trimmed);
     if (products.length > 0 && products.length < TARGET_RESULTS) {
       products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
+    }
+    // Hybrid fallback: SerpAPI quota / thin results → Brave + Cheerio
+    if (products.length < 20) {
+      const market = marketForQuery(trimmed);
+      const brave = await braveFallbackProducts(trimmed, market);
+      if (brave.length > 0) {
+        const braveSeeds: ProductSeed[] = brave
+          .filter((p) => p.name && p.price)
+          .map((p, i) => ({
+            id: `brave-${i}-${Date.now()}`,
+            name: p.name!,
+            price: p.price!,
+            currency: market.currency,
+            retailer: p.retailer || "Retailer",
+            url: p.url || "",
+            imageUrl: p.imageUrl,
+            rating: (p as unknown as { rating?: number }).rating,
+            reviewsCount: (p as unknown as { reviewsCount?: number }).reviewsCount,
+            availability: "Unknown" as const,
+          }))
+          .filter((p) => p.url);
+        const seen = new Set(products.map((p) => `${p.name.toLowerCase()}|${p.retailer}`));
+        for (const b of braveSeeds) {
+          const key = `${b.name.toLowerCase()}|${b.retailer}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            products.push(b);
+            if (products.length >= TARGET_RESULTS) break;
+          }
+        }
+      }
     }
   } catch { products = []; }
   const hasLiveProvider = Boolean(process.env.SERPAPI_API_KEY);
