@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int              @id @default(autoincrement())
+  email     String           @unique
+  createdAt DateTime         @default(now())
+  searches  Search[]
+  clicks    AffiliateClick[]
+}
+
+model Search {
+  id           Int            @id @default(autoincrement())
+  query        String
+  resultsCount Int
+  createdAt    DateTime       @default(now())
+  userId       Int?
+  user         User?          @relation(fields: [userId], references: [id])
+  results      SearchResult[]
+}
+
+model Product {
+  id           Int            @id @default(autoincrement())
+  name         String
+  price        Float
+  originalPrice Float?
+  retailer     String
+  retailerUrl  String
+  imageUrl     String?
+  rating       Float?
+  reviewsCount Int?
+  availability String?
+  category     String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  searchResults SearchResult[]
+  clicks        AffiliateClick[]
+  priceHistory  PriceHistory[]
+
+  @@unique([name, retailer])
+}
+
+model SearchResult {
+  id             Int     @id @default(autoincrement())
+  searchId       Int
+  search         Search  @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  productId      Int
+  product        Product @relation(fields: [productId], references: [id])
+  relevanceScore Float
+  rank           Int
+}
+
+model AffiliateClick {
+  id               Int      @id @default(autoincrement())
+  productId        Int?
+  product          Product? @relation(fields: [productId], references: [id])
+  userId           Int?
+  user             User?    @relation(fields: [userId], references: [id])
+  affiliateNetwork String
+  clickedAt        DateTime @default(now())
+  commissionEarned Float?
+  status           String   @default("pending")
+  // denormalized for quick analytics when product not yet persisted
+  rawProductId     String?
+  retailer         String?
+}
+
+model PriceHistory {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  price      Float
+  recordedAt DateTime @default(now())
+}
