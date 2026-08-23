@@ -73,9 +73,37 @@ export async function scrapeProduct(url: string): Promise<Partial<Product> | nul
   return scrapeGeneric(url);
 }
 
+export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
+  try {
+    const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36", Accept: "text/html" },
+      next: { revalidate: 3600 } as unknown as { revalidate: number },
+    } as unknown as RequestInit);
+    if (!res.ok) return [];
+    const html = await res.text();
+    const $ = cheerio.load(html);
+    const urls: string[] = [];
+    $("a.result__url").each((_, el) => {
+      const href = $(el).attr("href");
+      if (href) urls.push(href.startsWith("http") ? href : `https://${href}`);
+    });
+    // fallback selector
+    if (urls.length === 0) {
+      $("a[href*='amazon.'], a[href*='flipkart.'], a[href*='myntra.']").each((_, el) => {
+        const href = $(el).attr("href");
+        if (href && href.startsWith("http")) urls.push(href);
+      });
+    }
+    return urls.filter((url) => /amazon|flipkart|myntra|ajio|nykaa|tatacliq|croma|reliance/i.test(url)).slice(0, 20);
+  } catch {
+    return [];
+  }
+}
+
 export async function braveFallbackProducts(query: string, _market: { currency: "USD" | "INR"; gl: string }): Promise<Partial<Product>[]> {
   void _market;
-  const links = await searchBraveLinks(query);
+  let links = await searchBraveLinks(query);
+  if (links.length === 0) links = await searchDuckDuckGoLinks(query);
   if (links.length === 0) return [];
   const results = await Promise.all(links.slice(0, 15).map((url) => scrapeProduct(url)));
   return results.filter((r): r is Partial<Product> => Boolean(r && r.name));
