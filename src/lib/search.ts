@@ -382,7 +382,7 @@ async function persistSearch(query: string, products: Product[]) {
 export async function findProducts(query: string): Promise<SearchResponse> {
   const trimmed = query.trim().slice(0, 200);
   const cached = await getCachedSearch<SearchResponse>(trimmed);
-  if (cached) return cached;
+  if (cached && cached.products.length > 0) return cached;
 
   let products: ProductSeed[] = [];
   try {
@@ -392,36 +392,40 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     }
   } catch { products = []; }
   const hasLiveProvider = Boolean(process.env.SERPAPI_API_KEY);
-  const source = hasLiveProvider ? "live" as const : "demo" as const;
-  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : demoProducts, query);
-  if (hasLiveProvider && ranked.length > 0) {
-    if (ranked.length > TARGET_RESULTS) ranked = ranked.slice(0, TARGET_RESULTS);
-    else if (ranked.length < TARGET_RESULTS) {
-      const market = marketForQuery(query);
-      const need = TARGET_RESULTS - ranked.length;
-      const pad: typeof ranked = [];
-      for (let i = 0; i < need; i++) {
-        const base = demoProducts[i % demoProducts.length];
-        pad.push({
-          ...base,
-          id: `pad-${Date.now()}-${i}`,
-          name: `${base.name} — More to explore`,
-          price: base.price,
-          currency: market.currency,
-          originalPrice: undefined,
-          retailer: base.retailer,
-          url: base.url,
-          imageUrl: base.imageUrl,
-          rating: base.rating,
-          reviewsCount: base.reviewsCount,
-          availability: "Unknown" as const,
-          score: 0,
-          reason: "More to explore — related pick to reach 70.",
-          badges: ["Related"],
-        });
-      }
-      ranked = [...ranked, ...pad].slice(0, TARGET_RESULTS);
+  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : demoProducts, trimmed);
+  let source: "live" | "demo" = hasLiveProvider ? "live" : "demo";
+  // Quota / provider empty fallback to demo to keep mandatory 70 UX
+  if (hasLiveProvider && ranked.length === 0) {
+    ranked = rankProducts(demoProducts, trimmed).slice(0, TARGET_RESULTS);
+    source = "demo";
+  }
+  if (hasLiveProvider && ranked.length > 0 && ranked.length < TARGET_RESULTS) {
+    const market = marketForQuery(trimmed);
+    const need = TARGET_RESULTS - ranked.length;
+    const pad: typeof ranked = [];
+    for (let i = 0; i < need; i++) {
+      const base = demoProducts[i % demoProducts.length];
+      pad.push({
+        ...base,
+        id: `pad-${Date.now()}-${i}`,
+        name: `${base.name} — More to explore`,
+        price: base.price,
+        currency: market.currency,
+        originalPrice: undefined,
+        retailer: base.retailer,
+        url: base.url,
+        imageUrl: base.imageUrl,
+        rating: base.rating,
+        reviewsCount: base.reviewsCount,
+        availability: "Unknown" as const,
+        score: 0,
+        reason: "More to explore — related pick to reach 70.",
+        badges: ["Related"],
+      });
     }
+    ranked = [...ranked, ...pad].slice(0, TARGET_RESULTS);
+  } else if (hasLiveProvider && ranked.length > TARGET_RESULTS) {
+    ranked = ranked.slice(0, TARGET_RESULTS);
   }
   if (hasLiveProvider && ranked.length > 0) {
     const key = process.env.SERPAPI_API_KEY!;
@@ -439,7 +443,7 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     products: ranked,
     source,
   };
-  void setCachedSearch(trimmed, response);
+  if (ranked.length > 0) void setCachedSearch(trimmed, response);
   void persistSearch(trimmed, ranked);
   return response;
 }
