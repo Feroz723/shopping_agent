@@ -145,6 +145,18 @@ function matchesCategory(title: string, query: string) {
   return true;
 }
 
+function filterDemoForQuery(products: ProductSeed[], query: string): ProductSeed[] {
+  const stop = new Set(["for", "under", "with", "and", "the", "a", "an", "boys", "girls", "men", "women", "kids"]);
+  const keywords = query.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !stop.has(w));
+  if (keywords.length === 0) return products;
+  const filtered = products.filter((p) => {
+    const name = p.name.toLowerCase();
+    if (!matchesCategory(p.name, query)) return false;
+    return keywords.some((kw) => name.includes(kw));
+  });
+  return filtered.length >= 10 ? filtered : products.filter((p) => matchesCategory(p.name, query));
+}
+
 function buildProviderQuery(query: string) {
   return query;
 }
@@ -201,6 +213,18 @@ const demoBase: ProductSeed[] = [
   { id: "run-8", name: "Skechers Track Scloric", price: 58, currency: "USD", retailer: "Kohl's", url: "https://www.kohls.com/search?q=Skechers%20Track%20Scloric", imageUrl: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 918, shipping: "Free pickup", availability: "In stock" },
   { id: "run-9", name: "Brooks Launch 9", price: 99.95, currency: "USD", originalPrice: 120, retailer: "REI", url: "https://www.rei.com/search?q=Brooks%20Launch%209", imageUrl: "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?auto=format&fit=crop&w=900&q=80", rating: 4.8, reviewsCount: 412, shipping: "Free for members", availability: "In stock" },
   { id: "run-10", name: "Hoka Clifton 9", price: 144, currency: "USD", retailer: "Fleet Feet", url: "https://www.fleetfeet.com/search?q=Clifton%209", imageUrl: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 289, shipping: "Free delivery", availability: "Limited stock" },
+  { id: "run-11", name: "Allen Solly Boys Cotton Casual Shirt", price: 24.99, currency: "INR", originalPrice: 34.99, retailer: "Myntra", url: "https://www.myntra.com/shirts?query=allen+solly+boys+shirt", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 412, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-12", name: "Van Heusen Boys Formal Shirt", price: 29.99, currency: "INR", originalPrice: 39.99, retailer: "Ajio", url: "https://www.ajio.com/s/boys+shirts", imageUrl: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 298, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-13", name: "Vivo Y20 64GB Smartphone", price: 129.99, currency: "INR", originalPrice: 159.99, retailer: "Flipkart", url: "https://www.flipkart.com/search?q=vivo+y20", imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 2103, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-14", name: "Boat Airdopes 161 Wireless Earbuds", price: 19.99, currency: "INR", originalPrice: 29.99, retailer: "Amazon.in", url: "https://www.amazon.in/s?k=boat+airdopes", imageUrl: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 5432, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-15", name: "IKEA MICKE Study Desk", price: 99.99, currency: "USD", originalPrice: 129.99, retailer: "IKEA", url: "https://www.ikea.com/us/en/search/?q=micke+desk", imageUrl: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 892, shipping: "Check delivery", availability: "In stock" },
+  { id: "run-16", name: "Levi's Boys Slim Fit Jeans", price: 34.99, currency: "INR", originalPrice: 49.99, retailer: "Myntra", url: "https://www.myntra.com/jeans?query=levis+boys", imageUrl: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 1204, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-17", name: "Wildcraft Sports Shoes for Boys", price: 44.99, currency: "INR", originalPrice: 59.99, retailer: "Flipkart", url: "https://www.flipkart.com/search?q=wildcraft+shoes+boys", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 876, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-18", name: "Fastrack Reflex Smartwatch", price: 39.99, currency: "INR", originalPrice: 59.99, retailer: "Croma", url: "https://www.croma.com/search?q=fastrack+watch", imageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80", rating: 4.2, reviewsCount: 3421, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-19", name: "Puma Boys Running Sports Shoes", price: 54.99, currency: "INR", originalPrice: 69.99, retailer: "Ajio", url: "https://www.ajio.com/s/puma+boys+shoes", imageUrl: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 1543, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-20", name: "U.S. Polo Assn. Boys Checked Shirt", price: 27.99, currency: "INR", originalPrice: 37.99, retailer: "Myntra", url: "https://www.myntra.com/shirts?query=us+polo+boys", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 267, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-21", name: "Redmi 12 5G Smartphone", price: 149.99, currency: "INR", originalPrice: 179.99, retailer: "Amazon.in", url: "https://www.amazon.in/s?k=redmi+12", imageUrl: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 4521, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-22", name: "Decathlon Quechua Hiking Shoes", price: 59.99, currency: "INR", originalPrice: 79.99, retailer: "Decathlon", url: "https://www.decathlon.in/search?Nck=hiking+shoes", imageUrl: "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 923, shipping: "Free delivery", availability: "In stock" },
 ];
 
 const demoColors = ["Black", "White", "Navy"];
@@ -385,17 +409,14 @@ export async function findProducts(query: string): Promise<SearchResponse> {
   const cached = await getCachedSearch<SearchResponse>(trimmed);
   if (cached && cached.products.length > 0) return cached;
 
-  const pureMode = process.env.SCRAPING_MODE === "pure" || process.env.USE_SERPAPI === "false";
   let products: ProductSeed[] = [];
   try {
-    if (!pureMode) {
-      products = await liveProducts(trimmed);
-      if (products.length > 0 && products.length < TARGET_RESULTS) {
-        products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
-      }
+    products = await liveProducts(trimmed);
+    if (products.length > 0 && products.length < TARGET_RESULTS) {
+      products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
     }
-    // Pure scraping ($0) — primary when pureMode, fallback otherwise
-    if (pureMode || products.length < 20) {
+    // Hybrid fallback: SerpAPI thin/quota → Brave/DuckDuckGo $0
+    if (products.length < 20) {
       const market = marketForQuery(trimmed);
       const brave = await braveFallbackProducts(trimmed, market);
       if (brave.length > 0) {
@@ -427,11 +448,11 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     }
   } catch { products = []; }
   const hasLiveProvider = Boolean(process.env.SERPAPI_API_KEY);
-  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : demoProducts, trimmed);
+  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : filterDemoForQuery(demoProducts, trimmed), trimmed);
   let source: "live" | "demo" = hasLiveProvider ? "live" : "demo";
-  // Quota / provider empty fallback to demo to keep mandatory 70 UX
+  // Quota / provider empty fallback to demo to keep mandatory 70 UX — filtered to query
   if (hasLiveProvider && ranked.length === 0) {
-    ranked = rankProducts(demoProducts, trimmed).slice(0, TARGET_RESULTS);
+    ranked = rankProducts(filterDemoForQuery(demoProducts, trimmed), trimmed).slice(0, TARGET_RESULTS);
     source = "demo";
   }
   if (hasLiveProvider && ranked.length > 0 && ranked.length < TARGET_RESULTS) {
