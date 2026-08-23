@@ -145,20 +145,34 @@ function matchesCategory(title: string, query: string) {
   return true;
 }
 
-export function filterDemoForQuery(products: ProductSeed[], query: string): ProductSeed[] {
+export function filterDemoForQuery(products: ProductSeed[], query: string, market?: Market): ProductSeed[] {
   const q = query.toLowerCase();
   const isShirt = /\bshirts?\b/.test(q) && !/\bt[-\s]?shirts?\b|\btees?\b/i.test(q);
   const isShoe = /\bshoes?\b|\bsneakers?\b|\bsneaker\b/i.test(q);
   const isMobile = /\bmobile\b|\bphone\b|\bsmartphone\b/i.test(q);
   const isEar = /\bearbuds?\b|\bearphone\b|\bheadphone\b/i.test(q);
   const isFurniture = /\bdesk\b|\btable\b|\bchair\b/i.test(q);
-  console.log(`[filterDemo] query="${query}" isShirt=${isShirt} isShoe=${isShoe} total=${products.length}`);
   let filtered = products.filter((p) => matchesCategory(p.name, query));
   if (isShirt) {
     const shirtOnly = filtered.filter((p) => /shirt/i.test(p.name));
-    console.log(`[filterDemo] shirtOnly=${shirtOnly.length} filtered=${filtered.length}`);
-    return shirtOnly.length > 0 ? shirtOnly : filtered;
+    filtered = shirtOnly.length > 0 ? shirtOnly : filtered;
+  } else if (isShoe) {
+    const shoeOnly = filtered.filter((p) => /shoe|sneaker|downshifter|contend|duramo|arishi|tazon|surge|scloric|launch|clifton|wildcraft|decathlon|puma|nike|asics|adidas|new balance|hoka|brooks/i.test(p.name));
+    filtered = shoeOnly.length > 0 ? shoeOnly : filtered;
+  } else if (isMobile) {
+    const m = filtered.filter((p) => /vivo|redmi|mobile|phone|smartphone/i.test(p.name));
+    filtered = m.length > 0 ? m : filtered;
+  } else if (isEar) {
+    const e = filtered.filter((p) => /airdopes|earbuds|boat/i.test(p.name));
+    filtered = e.length > 0 ? e : filtered;
+  } else if (isFurniture) {
+    const f = filtered.filter((p) => /desk|micke/i.test(p.name));
+    filtered = f.length > 0 ? f : filtered;
   }
+  if (market) {
+    filtered = filtered.map((p) => ({ ...p, currency: market.currency, price: market.currency === "INR" && p.currency === "USD" ? Math.round(p.price * 83) : p.price, originalPrice: p.originalPrice && market.currency === "INR" && p.currency === "USD" ? Math.round(p.originalPrice * 83) : p.originalPrice }));
+  }
+  return filtered;
   if (isShoe) {
     const shoeOnly = filtered.filter((p) => /shoe|sneaker|downshifter|contend|duramo|arishi|tazon|surge|scloric|launch|clifton|wildcraft|decathlon|puma|nike|asics|adidas|new balance|hoka|brooks/i.test(p.name));
     return shoeOnly.length > 0 ? shoeOnly : filtered;
@@ -224,28 +238,28 @@ export function warmResolveProducts(products: Product[], market: Market, apiKey:
 }
 
 const demoBase: ProductSeed[] = [
-  { id: "run-1", name: "Nike Downshifter 13", price: 69.97, currency: "USD", originalPrice: 89.99, retailer: "Nike", url: "https://www.nike.com/w?q=Downshifter%2013", imageUrl: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 314, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-2", name: "ASICS GEL-Contend 8", price: 64.95, currency: "USD", retailer: "Zappos", url: "https://www.zappos.com/search?term=ASICS%20GEL-Contend%208", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 882, shipping: "Free shipping", availability: "In stock" },
-  { id: "run-3", name: "adidas Duramo SL 2.0", price: 55, currency: "USD", originalPrice: 70, retailer: "adidas", url: "https://www.adidas.com/us/search?q=Duramo%20SL", imageUrl: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 1201, shipping: "Free over $50", availability: "In stock" },
-  { id: "run-4", name: "New Balance Fresh Foam Arishi v4", price: 74.99, currency: "USD", retailer: "Target", url: "https://www.target.com/s?searchTerm=Fresh+Foam+Arishi+v4", imageUrl: "https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 527, shipping: "Pickup available", availability: "In stock" },
-  { id: "run-5", name: "PUMA Tazon 6 FM", price: 49.99, currency: "USD", retailer: "Walmart", url: "https://www.walmart.com/search?q=PUMA+Tazon+6+FM", imageUrl: "https://images.unsplash.com/photo-1605348532760-6753d2c43329?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 2098, shipping: "Free over $35", availability: "Limited stock" },
-  { id: "run-6", name: "Reebok Energen Lite Plus 3", price: 47.5, currency: "USD", originalPrice: 65, retailer: "Reebok", url: "https://www.reebok.com/us/search?q=Energen%20Lite", imageUrl: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 356, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-7", name: "Under Armour Surge 4", price: 62.5, currency: "USD", originalPrice: 75, retailer: "Dick's Sporting Goods", url: "https://www.dickssportinggoods.com/search?q=Surge%204", imageUrl: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 743, shipping: "Free over $49", availability: "In stock" },
-  { id: "run-8", name: "Skechers Track Scloric", price: 58, currency: "USD", retailer: "Kohl's", url: "https://www.kohls.com/search?q=Skechers%20Track%20Scloric", imageUrl: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 918, shipping: "Free pickup", availability: "In stock" },
-  { id: "run-9", name: "Brooks Launch 9", price: 99.95, currency: "USD", originalPrice: 120, retailer: "REI", url: "https://www.rei.com/search?q=Brooks%20Launch%209", imageUrl: "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?auto=format&fit=crop&w=900&q=80", rating: 4.8, reviewsCount: 412, shipping: "Free for members", availability: "In stock" },
-  { id: "run-10", name: "Hoka Clifton 9", price: 144, currency: "USD", retailer: "Fleet Feet", url: "https://www.fleetfeet.com/search?q=Clifton%209", imageUrl: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 289, shipping: "Free delivery", availability: "Limited stock" },
-  { id: "run-11", name: "Allen Solly Boys Cotton Casual Shirt", price: 24.99, currency: "INR", originalPrice: 34.99, retailer: "Myntra", url: "https://www.myntra.com/shirts?query=allen+solly+boys+shirt", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 412, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-12", name: "Van Heusen Boys Formal Shirt", price: 29.99, currency: "INR", originalPrice: 39.99, retailer: "Ajio", url: "https://www.ajio.com/s/boys+shirts", imageUrl: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 298, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-13", name: "Vivo Y20 64GB Smartphone", price: 129.99, currency: "INR", originalPrice: 159.99, retailer: "Flipkart", url: "https://www.flipkart.com/search?q=vivo+y20", imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 2103, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-14", name: "Boat Airdopes 161 Wireless Earbuds", price: 19.99, currency: "INR", originalPrice: 29.99, retailer: "Amazon.in", url: "https://www.amazon.in/s?k=boat+airdopes", imageUrl: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 5432, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-15", name: "IKEA MICKE Study Desk", price: 99.99, currency: "USD", originalPrice: 129.99, retailer: "IKEA", url: "https://www.ikea.com/us/en/search/?q=micke+desk", imageUrl: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 892, shipping: "Check delivery", availability: "In stock" },
-  { id: "run-16", name: "Levi's Boys Slim Fit Jeans", price: 34.99, currency: "INR", originalPrice: 49.99, retailer: "Myntra", url: "https://www.myntra.com/jeans?query=levis+boys", imageUrl: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 1204, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-17", name: "Wildcraft Sports Shoes for Boys", price: 44.99, currency: "INR", originalPrice: 59.99, retailer: "Flipkart", url: "https://www.flipkart.com/search?q=wildcraft+shoes+boys", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 876, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-18", name: "Fastrack Reflex Smartwatch", price: 39.99, currency: "INR", originalPrice: 59.99, retailer: "Croma", url: "https://www.croma.com/search?q=fastrack+watch", imageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80", rating: 4.2, reviewsCount: 3421, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-19", name: "Puma Boys Running Sports Shoes", price: 54.99, currency: "INR", originalPrice: 69.99, retailer: "Ajio", url: "https://www.ajio.com/s/puma+boys+shoes", imageUrl: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 1543, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-20", name: "U.S. Polo Assn. Boys Checked Shirt", price: 27.99, currency: "INR", originalPrice: 37.99, retailer: "Myntra", url: "https://www.myntra.com/shirts?query=us+polo+boys", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 267, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-21", name: "Redmi 12 5G Smartphone", price: 149.99, currency: "INR", originalPrice: 179.99, retailer: "Amazon.in", url: "https://www.amazon.in/s?k=redmi+12", imageUrl: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 4521, shipping: "Free delivery", availability: "In stock" },
-  { id: "run-22", name: "Decathlon Quechua Hiking Shoes", price: 59.99, currency: "INR", originalPrice: 79.99, retailer: "Decathlon", url: "https://www.decathlon.in/search?Nck=hiking+shoes", imageUrl: "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 923, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-1", name: "Nike Downshifter 13", price: 69.97, currency: "USD", originalPrice: 89.99, retailer: "Nike", url: "https://www.nike.com/t/downshifter-13-mens-road-running-shoes-DM12345", imageUrl: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 314, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-2", name: "ASICS GEL-Contend 8", price: 64.95, currency: "USD", retailer: "Zappos", url: "https://www.zappos.com/p/asics-gel-contend-8-123456", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 882, shipping: "Free shipping", availability: "In stock" },
+  { id: "run-3", name: "adidas Duramo SL 2.0", price: 55, currency: "USD", originalPrice: 70, retailer: "adidas", url: "https://www.adidas.co.in/duramo-sl-2.0-shoes/GW12345.html", imageUrl: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 1201, shipping: "Free over $50", availability: "In stock" },
+  { id: "run-4", name: "New Balance Fresh Foam Arishi v4", price: 74.99, currency: "USD", retailer: "Target", url: "https://www.target.com/p/new-balance-fresh-foam-arishi-v4/-/A-12345678", imageUrl: "https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 527, shipping: "Pickup available", availability: "In stock" },
+  { id: "run-5", name: "PUMA Tazon 6 FM", price: 49.99, currency: "USD", retailer: "Walmart", url: "https://www.walmart.com/ip/puma-tazon-6-fm-sneakers/123456789", imageUrl: "https://images.unsplash.com/photo-1605348532760-6753d2c43329?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 2098, shipping: "Free over $35", availability: "Limited stock" },
+  { id: "run-6", name: "Reebok Energen Lite Plus 3", price: 47.5, currency: "USD", originalPrice: 65, retailer: "Reebok", url: "https://www.reebok.com/us/energen-lite-plus-3-shoes/IE1234", imageUrl: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 356, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-7", name: "Under Armour Surge 4", price: 62.5, currency: "USD", originalPrice: 75, retailer: "Dick's Sporting Goods", url: "https://www.dickssportinggoods.com/p/under-armour-surge-4/12345abc", imageUrl: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 743, shipping: "Free over $49", availability: "In stock" },
+  { id: "run-8", name: "Skechers Track Scloric", price: 58, currency: "USD", retailer: "Kohl's", url: "https://www.kohls.com/product/prd-123456/skechers-track-scloric.jsp", imageUrl: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 918, shipping: "Free pickup", availability: "In stock" },
+  { id: "run-9", name: "Brooks Launch 9", price: 99.95, currency: "USD", originalPrice: 120, retailer: "REI", url: "https://www.rei.com/product/123456/brooks-launch-9", imageUrl: "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?auto=format&fit=crop&w=900&q=80", rating: 4.8, reviewsCount: 412, shipping: "Free for members", availability: "In stock" },
+  { id: "run-10", name: "Hoka Clifton 9", price: 144, currency: "USD", retailer: "Fleet Feet", url: "https://www.fleetfeet.com/products/hoka-clifton-9-12345", imageUrl: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 289, shipping: "Free delivery", availability: "Limited stock" },
+  { id: "run-11", name: "Allen Solly Boys Cotton Casual Shirt", price: 799, currency: "INR", originalPrice: 1299, retailer: "Myntra", url: "https://www.myntra.com/shirts/allen-solly-boys-cotton-casual-shirt/1234567/buy", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 412, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-12", name: "Van Heusen Boys Formal Shirt", price: 899, currency: "INR", originalPrice: 1499, retailer: "Ajio", url: "https://www.ajio.com/p/van-heusen-boys-formal-shirt-123456", imageUrl: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 298, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-13", name: "Vivo Y20 64GB Smartphone", price: 11999, currency: "INR", originalPrice: 15999, retailer: "Flipkart", url: "https://www.flipkart.com/vivo-y20-64gb-smartphone/p/itm1234567890?pid=MOB123", imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 2103, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-14", name: "Boat Airdopes 161 Wireless Earbuds", price: 1499, currency: "INR", originalPrice: 2990, retailer: "Amazon.in", url: "https://www.amazon.in/dp/B0EXAMPLE14?tag=mensfashion36-21", imageUrl: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 5432, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-15", name: "IKEA MICKE Study Desk", price: 8999, currency: "INR", originalPrice: 12999, retailer: "IKEA", url: "https://www.ikea.com/in/en/p/micke-desk-white-123456", imageUrl: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 892, shipping: "Check delivery", availability: "In stock" },
+  { id: "run-16", name: "Levi's Boys Slim Fit Jeans", price: 1999, currency: "INR", originalPrice: 2999, retailer: "Myntra", url: "https://www.myntra.com/jeans/levis-boys-slim-fit-jeans/7654321/buy", imageUrl: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 1204, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-17", name: "Wildcraft Sports Shoes for Boys", price: 2499, currency: "INR", originalPrice: 3499, retailer: "Flipkart", url: "https://www.flipkart.com/wildcraft-sports-shoes-boys/p/itm7654321?pid=SHO123", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 876, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-18", name: "Fastrack Reflex Smartwatch", price: 2999, currency: "INR", originalPrice: 4999, retailer: "Croma", url: "https://www.croma.com/fastrack-reflex-smartwatch/p/234567", imageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80", rating: 4.2, reviewsCount: 3421, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-19", name: "Puma Boys Running Sports Shoes", price: 2799, currency: "INR", originalPrice: 3999, retailer: "Ajio", url: "https://www.ajio.com/p/puma-boys-running-sports-shoes-7654321", imageUrl: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 1543, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-20", name: "U.S. Polo Assn. Boys Checked Shirt", price: 1499, currency: "INR", originalPrice: 2199, retailer: "Myntra", url: "https://www.myntra.com/shirts/u-s-polo-assn-boys-checked-shirt/2345678/buy", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 267, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-21", name: "Redmi 12 5G Smartphone", price: 12999, currency: "INR", originalPrice: 16999, retailer: "Amazon.in", url: "https://www.amazon.in/dp/B0EXAMPLE21?tag=mensfashion36-21", imageUrl: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 4521, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-22", name: "Decathlon Quechua Hiking Shoes", price: 3499, currency: "INR", originalPrice: 4999, retailer: "Decathlon", url: "https://www.decathlon.in/p/quechua-hiking-shoes-123456", imageUrl: "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 923, shipping: "Free delivery", availability: "In stock" },
 ];
 
 const demoColors = ["Black", "White", "Navy"];
@@ -469,11 +483,12 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     }
   } catch { products = []; }
   const hasLiveProvider = Boolean(process.env.SERPAPI_API_KEY);
-  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : filterDemoForQuery(demoProducts, trimmed), trimmed);
+  const marketForRanked = marketForQuery(trimmed);
+  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed);
   let source: "live" | "demo" = hasLiveProvider ? "live" : "demo";
   // Quota / provider empty fallback to demo to keep mandatory 70 UX — filtered to query
   if (hasLiveProvider && ranked.length === 0) {
-    ranked = rankProducts(filterDemoForQuery(demoProducts, trimmed), trimmed).slice(0, TARGET_RESULTS);
+    ranked = rankProducts(filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed).slice(0, TARGET_RESULTS);
     source = "demo";
   }
   if (hasLiveProvider && ranked.length > 0 && ranked.length < TARGET_RESULTS) {
