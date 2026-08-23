@@ -84,13 +84,29 @@ export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
     const $ = cheerio.load(html);
     const urls: string[] = [];
     $("a.result__url").each((_, el) => {
-      const href = $(el).attr("href");
-      if (href) urls.push(href.startsWith("http") ? href : `https://${href}`);
+      let href = $(el).attr("href");
+      if (!href) return;
+      // Decode DuckDuckGo redirect //duckduckgo.com/l/?uddg=https%3A%2F%2F...
+      if (href.includes("uddg=")) {
+        try {
+          const u = new URL(href.startsWith("//") ? `https:${href}` : href);
+          const decoded = u.searchParams.get("uddg");
+          if (decoded) href = decodeURIComponent(decoded);
+        } catch {}
+      }
+      if (href) urls.push(href.startsWith("http") ? href : href.startsWith("//") ? `https:${href}` : `https://${href}`);
     });
-    // fallback selector
     if (urls.length === 0) {
       $("a[href*='amazon.'], a[href*='flipkart.'], a[href*='myntra.']").each((_, el) => {
-        const href = $(el).attr("href");
+        let href = $(el).attr("href");
+        if (!href) return;
+        if (href.includes("uddg=")) {
+          try {
+            const u = new URL(href.startsWith("//") ? `https:${href}` : href);
+            const d = u.searchParams.get("uddg");
+            if (d) href = decodeURIComponent(d);
+          } catch {}
+        }
         if (href && href.startsWith("http")) urls.push(href);
       });
     }
@@ -100,11 +116,49 @@ export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
   }
 }
 
+export async function scrapeAmazonSearch(query: string): Promise<Partial<Product>[]> {
+  try {
+    const url = `https://www.amazon.in/s?k=${encodeURIComponent(query)}`;
+    const html = await fetchWithUA(url);
+    if (!html) return [];
+    const $ = cheerio.load(html);
+    const results: Partial<Product>[] = [];
+    $("div[data-component-type='s-search-result']").each((_, el) => {
+      const name = $(el).find("h2 span").first().text().trim();
+      const priceText = $(el).find("span.a-price-whole").first().text();
+      const price = parseFloat(priceText.replace(/[^\d.]/g, ""));
+      const link = $(el).find("h2 a").attr("href");
+      const imageUrl = $(el).find("img.s-image").attr("src");
+      const ratingText = $(el).find("span.a-icon-alt").first().text();
+      const rating = parseFloat(ratingText);
+      if (name && price && link) {
+        results.push({
+          name,
+          price,
+          retailer: "Amazon.in",
+          url: link.startsWith("http") ? link : `https://www.amazon.in${link}`,
+          imageUrl,
+          rating: isNaN(rating) ? undefined : rating,
+        });
+      }
+    });
+    return results.slice(0, 30);
+  } catch {
+    return [];
+  }
+}
+
 export async function braveFallbackProducts(query: string, _market: { currency: "USD" | "INR"; gl: string }): Promise<Partial<Product>[]> {
   void _market;
   let links = await searchBraveLinks(query);
   if (links.length === 0) links = await searchDuckDuckGoLinks(query);
-  if (links.length === 0) return [];
-  const results = await Promise.all(links.slice(0, 15).map((url) => scrapeProduct(url)));
-  return results.filter((r): r is Partial<Product> => Boolean(r && r.name));
+  if (links.length > 0) {
+    const results = await Promise.all(links.slice(0, 15).map((url) => scrapeProduct(url)));
+    const filtered = results.filter((r): r is Partial<Product> => Boolean(r && r.name && r.price));
+    if (filtered.length >= 10) return filtered;
+  }
+  // Direct Amazon search scrape — $0, no API key, works even when Brave/DuckDuckGo are thin
+  const amazonDirect = await scrapeAmazonSearch(query);
+  if (amazonDirect.length > 0) return amazonDirect;
+  return [];
 }
