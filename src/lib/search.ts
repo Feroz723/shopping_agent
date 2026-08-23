@@ -170,7 +170,13 @@ export function filterDemoForQuery(products: ProductSeed[], query: string, marke
     filtered = f.length > 0 ? f : filtered;
   }
   if (market) {
-    filtered = filtered.map((p) => ({ ...p, currency: market.currency, price: market.currency === "INR" && p.currency === "USD" ? Math.round(p.price * 83) : p.price, originalPrice: p.originalPrice && market.currency === "INR" && p.currency === "USD" ? Math.round(p.originalPrice * 83) : p.originalPrice }));
+    filtered = filtered.map((p) => {
+      let price = p.price;
+      let originalPrice = p.originalPrice;
+      if (market.currency === "INR" && p.currency === "USD") { price = Math.round(p.price * 83); originalPrice = p.originalPrice ? Math.round(p.originalPrice * 83) : undefined; }
+      else if (market.currency === "USD" && p.currency === "INR") { price = Math.round((p.price / 83) * 100) / 100; originalPrice = p.originalPrice ? Math.round((p.originalPrice / 83) * 100) / 100 : undefined; }
+      return { ...p, currency: market.currency, price, originalPrice };
+    });
   }
   return filtered;
   if (isShoe) {
@@ -497,13 +503,17 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     const pad: typeof ranked = [];
     for (let i = 0; i < need; i++) {
       const base = demoProducts[i % demoProducts.length];
+      let convPrice = base.price;
+      let convOrig = base.originalPrice;
+      if (market.currency === "INR" && base.currency === "USD") { convPrice = Math.round(base.price * 83); convOrig = base.originalPrice ? Math.round(base.originalPrice * 83) : undefined; }
+      else if (market.currency === "USD" && base.currency === "INR") { convPrice = Math.round((base.price / 83) * 100) / 100; convOrig = base.originalPrice ? Math.round((base.originalPrice / 83) * 100) / 100 : undefined; }
       pad.push({
         ...base,
         id: `pad-${Date.now()}-${i}`,
         name: `${base.name} — More to explore`,
-        price: base.price,
+        price: convPrice,
         currency: market.currency,
-        originalPrice: undefined,
+        originalPrice: convOrig,
         retailer: base.retailer,
         url: base.url,
         imageUrl: base.imageUrl,
