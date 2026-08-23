@@ -145,16 +145,37 @@ function matchesCategory(title: string, query: string) {
   return true;
 }
 
-function filterDemoForQuery(products: ProductSeed[], query: string): ProductSeed[] {
-  const stop = new Set(["for", "under", "with", "and", "the", "a", "an", "boys", "girls", "men", "women", "kids"]);
-  const keywords = query.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !stop.has(w));
-  if (keywords.length === 0) return products;
-  const filtered = products.filter((p) => {
-    const name = p.name.toLowerCase();
-    if (!matchesCategory(p.name, query)) return false;
-    return keywords.some((kw) => name.includes(kw));
-  });
-  return filtered.length >= 10 ? filtered : products.filter((p) => matchesCategory(p.name, query));
+export function filterDemoForQuery(products: ProductSeed[], query: string): ProductSeed[] {
+  const q = query.toLowerCase();
+  const isShirt = /\bshirts?\b/.test(q) && !/\bt[-\s]?shirts?\b|\btees?\b/i.test(q);
+  const isShoe = /\bshoes?\b|\bsneakers?\b|\bsneaker\b/i.test(q);
+  const isMobile = /\bmobile\b|\bphone\b|\bsmartphone\b/i.test(q);
+  const isEar = /\bearbuds?\b|\bearphone\b|\bheadphone\b/i.test(q);
+  const isFurniture = /\bdesk\b|\btable\b|\bchair\b/i.test(q);
+  console.log(`[filterDemo] query="${query}" isShirt=${isShirt} isShoe=${isShoe} total=${products.length}`);
+  let filtered = products.filter((p) => matchesCategory(p.name, query));
+  if (isShirt) {
+    const shirtOnly = filtered.filter((p) => /shirt/i.test(p.name));
+    console.log(`[filterDemo] shirtOnly=${shirtOnly.length} filtered=${filtered.length}`);
+    return shirtOnly.length > 0 ? shirtOnly : filtered;
+  }
+  if (isShoe) {
+    const shoeOnly = filtered.filter((p) => /shoe|sneaker|downshifter|contend|duramo|arishi|tazon|surge|scloric|launch|clifton|wildcraft|decathlon|puma|nike|asics|adidas|new balance|hoka|brooks/i.test(p.name));
+    return shoeOnly.length > 0 ? shoeOnly : filtered;
+  }
+  if (isMobile) {
+    const m = filtered.filter((p) => /vivo|redmi|mobile|phone|smartphone/i.test(p.name));
+    return m.length > 0 ? m : filtered;
+  }
+  if (isEar) {
+    const e = filtered.filter((p) => /airdopes|earbuds|boat/i.test(p.name));
+    return e.length > 0 ? e : filtered;
+  }
+  if (isFurniture) {
+    const f = filtered.filter((p) => /desk|micke/i.test(p.name));
+    return f.length > 0 ? f : filtered;
+  }
+  return filtered;
 }
 
 function buildProviderQuery(query: string) {
@@ -229,7 +250,7 @@ const demoBase: ProductSeed[] = [
 
 const demoColors = ["Black", "White", "Navy"];
 
-const demoProducts: ProductSeed[] = demoBase.flatMap((item, baseIndex) =>
+export const demoProducts: ProductSeed[] = demoBase.flatMap((item, baseIndex) =>
   demoColors.map((color, colorIndex) => ({
     ...item,
     id: `demo-${baseIndex}-${colorIndex}`,
