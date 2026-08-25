@@ -97,7 +97,7 @@ export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
       if (href) urls.push(href.startsWith("http") ? href : href.startsWith("//") ? `https:${href}` : `https://${href}`);
     });
     if (urls.length === 0) {
-      $("a[href*='amazon.'], a[href*='flipkart.'], a[href*='myntra.']").each((_, el) => {
+      $("a[href*='amazon.'], a[href*='flipkart.'], a[href*='myntra.'], a[href*='walmart.'], a[href*='target.'], a[href*='nike.']").each((_, el) => {
         let href = $(el).attr("href");
         if (!href) return;
         if (href.includes("uddg=")) {
@@ -110,19 +110,20 @@ export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
         if (href && href.startsWith("http")) urls.push(href);
       });
     }
-    return urls.filter((url) => /amazon|flipkart|myntra|ajio|nykaa|tatacliq|croma|reliance/i.test(url)).slice(0, 20);
+    return urls.filter((url) => /amazon|flipkart|myntra|ajio|nykaa|tatacliq|croma|reliance|walmart|target|nike|adidas|puma|zappos|ebay/i.test(url)).slice(0, 20);
   } catch {
     return [];
   }
 }
 
-export async function scrapeAmazonSearch(query: string): Promise<Partial<Product>[]> {
+export async function scrapeAmazonSearch(query: string, domain: string = "www.amazon.in"): Promise<Partial<Product>[]> {
   try {
-    const url = `https://www.amazon.in/s?k=${encodeURIComponent(query)}`;
+    const url = `https://${domain}/s?k=${encodeURIComponent(query)}`;
     const html = await fetchWithUA(url);
     if (!html) return [];
     const $ = cheerio.load(html);
     const results: Partial<Product>[] = [];
+    const retailerName = domain.includes(".com") ? "Amazon" : "Amazon.in";
     $("div[data-component-type='s-search-result']").each((_, el) => {
       const name = $(el).find("h2 span").first().text().trim();
       const priceText = $(el).find("span.a-price-whole").first().text();
@@ -135,8 +136,8 @@ export async function scrapeAmazonSearch(query: string): Promise<Partial<Product
         results.push({
           name,
           price,
-          retailer: "Amazon.in",
-          url: link.startsWith("http") ? link : `https://www.amazon.in${link}`,
+          retailer: retailerName,
+          url: link.startsWith("http") ? link : `https://${domain}${link}`,
           imageUrl,
           rating: isNaN(rating) ? undefined : rating,
         });
@@ -148,8 +149,7 @@ export async function scrapeAmazonSearch(query: string): Promise<Partial<Product
   }
 }
 
-export async function braveFallbackProducts(query: string, _market: { currency: "USD" | "INR"; gl: string }): Promise<Partial<Product>[]> {
-  void _market;
+export async function braveFallbackProducts(query: string, market?: { currency: "USD" | "INR"; gl: string }): Promise<Partial<Product>[]> {
   let links = await searchBraveLinks(query);
   if (links.length === 0) links = await searchDuckDuckGoLinks(query);
   if (links.length > 0) {
@@ -158,7 +158,8 @@ export async function braveFallbackProducts(query: string, _market: { currency: 
     if (filtered.length >= 10) return filtered;
   }
   // Direct Amazon search scrape — $0, no API key, works even when Brave/DuckDuckGo are thin
-  const amazonDirect = await scrapeAmazonSearch(query);
+  const domain = market?.currency === "USD" ? "www.amazon.com" : "www.amazon.in";
+  const amazonDirect = await scrapeAmazonSearch(query, domain);
   if (amazonDirect.length > 0) return amazonDirect;
   return [];
 }
