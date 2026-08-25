@@ -29,8 +29,14 @@ const INDIAN_MARKET: Market = { currency: "INR", gl: "in", amazonTld: "in" };
 const US_MARKET: Market = { currency: "USD", gl: "us", amazonTld: "com" };
 
 function marketForQuery(query: string): Market {
-  if (/\$|\busd\b/i.test(query)) return US_MARKET;
+  if (/\$|\busd\b|\bdollars?\b/i.test(query)) return US_MARKET;
   return INDIAN_MARKET;
+}
+
+export function extractBudgetFromQuery(query: string): number | undefined {
+  const match = query.match(/(?:under|below|less than|within)\s*(?:₹|rs\.?|inr|\$)?\s*(\d+)\s*(?:rupees|rs\.?|inr|usd|\$|dollars?)?/i) ||
+                query.match(/(\d+)\s*(?:rupees|rs\.?|inr|\$|dollars?)\s*(?:or less|max|budget)/i);
+  return match ? Number(match[1]) : undefined;
 }
 
 function amazonUrlFor(links: (string | undefined)[], region: "in" | "com", name: string) {
@@ -73,7 +79,7 @@ export function fallbackRetailerSearchUrl(retailer: string, name: string, region
   const base = retailerSearchUrls[retailerLower]?.(name) ?? `https://www.google.com/search?q=${encodeURIComponent(name)}`;
   // Add affiliate attribution for non-Amazon fallbacks consumed by /api/go analytics
   const sep = base.includes("?") ? "&" : "?";
-  return `${base}${sep}utm_source=scout&utm_medium=affiliate&utm_campaign=${encodeURIComponent(retailerLower)}`;
+  return `${base}${sep}utm_source=shoppulse&utm_medium=affiliate&utm_campaign=${encodeURIComponent(retailerLower)}`;
 }
 
 function providerProductIdFrom(links: (string | undefined)[]) {
@@ -266,6 +272,10 @@ const demoBase: ProductSeed[] = [
   { id: "run-20", name: "U.S. Polo Assn. Boys Checked Shirt", price: 1499, currency: "INR", originalPrice: 2199, retailer: "Myntra", url: "https://www.myntra.com/shirts/u-s-polo-assn-boys-checked-shirt/2345678/buy", imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 267, shipping: "Free delivery", availability: "In stock" },
   { id: "run-21", name: "Redmi 12 5G Smartphone", price: 12999, currency: "INR", originalPrice: 16999, retailer: "Amazon.in", url: "https://www.amazon.in/dp/B0EXAMPLE21?tag=mensfashion36-21", imageUrl: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 4521, shipping: "Free delivery", availability: "In stock" },
   { id: "run-22", name: "Decathlon Quechua Hiking Shoes", price: 3499, currency: "INR", originalPrice: 4999, retailer: "Decathlon", url: "https://www.decathlon.in/p/quechua-hiking-shoes-123456", imageUrl: "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80", rating: 4.7, reviewsCount: 923, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-23", name: "Asian Oxyfit Casual Running Shoes", price: 699, currency: "INR", originalPrice: 999, retailer: "Amazon.in", url: "https://www.amazon.in/dp/B0EXAMPLE23", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80", rating: 4.4, reviewsCount: 3820, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-24", name: "Campus Men OXYFIT Running Shoes", price: 849, currency: "INR", originalPrice: 1199, retailer: "Flipkart", url: "https://www.flipkart.com/campus-men-oxyfit-running-shoes/p/itm123456", imageUrl: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=900&q=80", rating: 4.5, reviewsCount: 5120, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-25", name: "Sparx Men Mesh Running Shoes", price: 899, currency: "INR", originalPrice: 1299, retailer: "Amazon.in", url: "https://www.amazon.in/dp/B0EXAMPLE25", imageUrl: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80", rating: 4.6, reviewsCount: 8940, shipping: "Free delivery", availability: "In stock" },
+  { id: "run-26", name: "Kraasa Lightweight Sports Shoes", price: 499, currency: "INR", originalPrice: 899, retailer: "Myntra", url: "https://www.myntra.com/shoes/kraasa-sports-shoes/12345/buy", imageUrl: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=900&q=80", rating: 4.3, reviewsCount: 1940, shipping: "Free delivery", availability: "In stock" },
 ];
 
 const demoColors = ["Black", "White", "Navy"];
@@ -288,12 +298,12 @@ function parsePrice(price?: string) {
 }
 
 function rankProducts(products: ProductSeed[], query: string) {
-  const budget = Number(query.match(/(?:under|below|less than)\s*\$?(\d+)/i)?.[1]);
+  const budget = extractBudgetFromQuery(query);
   return products
     .map((product) => {
       const ratingValue = (product.rating ?? 0) * 12;
       const reviewValue = Math.min(Math.log10((product.reviewsCount ?? 0) + 1) * 7, 26);
-      const budgetValue = budget ? (product.price <= budget ? 16 : -25) : 8;
+      const budgetValue = budget ? (product.price <= budget ? 30 : -50) : 8;
       const saleValue = product.originalPrice && product.originalPrice > product.price ? 5 : 0;
       const score = Math.max(1, Math.min(99, Math.round(35 + ratingValue + reviewValue + budgetValue + saleValue - product.price / 22)));
       const badges = [
@@ -301,11 +311,13 @@ function rankProducts(products: ProductSeed[], query: string) {
         ...(product.rating && product.rating >= 4.6 ? ["Top rated"] : []),
         ...(product.originalPrice ? ["On sale"] : []),
       ].slice(0, 2);
-      const reason = product.rating && product.rating >= 4.6
-        ? `Strong ${product.rating}/5 feedback from ${product.reviewsCount?.toLocaleString()} shoppers.`
-        : product.originalPrice
-          ? `A practical pick with a current ${Math.round((1 - product.price / product.originalPrice) * 100)}% saving.`
-          : "A well-priced option with a solid mix of comfort and value.";
+      const reason = budget && product.price <= budget
+        ? `Fits under your ${product.currency === "INR" ? `₹${budget}` : `$${budget}`} budget with strong feedback.`
+        : product.rating && product.rating >= 4.6
+          ? `Strong ${product.rating}/5 feedback from ${product.reviewsCount?.toLocaleString()} shoppers.`
+          : product.originalPrice
+            ? `A practical pick with a current ${Math.round((1 - product.price / product.originalPrice) * 100)}% saving.`
+            : "A well-priced option with a solid mix of comfort and value.";
       return { ...product, score, reason, badges };
     })
     .sort((a, b) => b.score - a.score);
@@ -456,7 +468,7 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     if (products.length > 0 && products.length < TARGET_RESULTS) {
       products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
     }
-    // Hybrid fallback: SerpAPI thin/quota → Brave/DuckDuckGo $0
+    // Zero-cost live scraping fallback (DuckDuckGo / Amazon $0 scrape)
     if (products.length < 20) {
       const market = marketForQuery(trimmed);
       const brave = await braveFallbackProducts(trimmed, market);
@@ -464,7 +476,7 @@ export async function findProducts(query: string): Promise<SearchResponse> {
         const braveSeeds: ProductSeed[] = brave
           .filter((p) => p.name && p.price)
           .map((p, i) => ({
-            id: `brave-${i}-${Date.now()}`,
+            id: `scraped-${i}-${Date.now()}`,
             name: p.name!,
             price: p.price!,
             currency: market.currency,
@@ -489,11 +501,12 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     }
   } catch { products = []; }
   const hasLiveProvider = Boolean(process.env.SERPAPI_API_KEY);
+  const hasScrapedLiveResults = products.length > 0;
   const marketForRanked = marketForQuery(trimmed);
-  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed);
-  let source: "live" | "demo" = hasLiveProvider ? "live" : "demo";
+  let ranked = rankProducts(products.length ? products : filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed);
+  let source: "live" | "demo" = hasLiveProvider || hasScrapedLiveResults ? "live" : "demo";
   // Quota / provider empty fallback to demo to keep mandatory 70 UX — filtered to query
-  if (hasLiveProvider && ranked.length === 0) {
+  if ((hasLiveProvider || hasScrapedLiveResults) && ranked.length === 0) {
     ranked = rankProducts(filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed).slice(0, TARGET_RESULTS);
     source = "demo";
   }
@@ -537,7 +550,7 @@ export async function findProducts(query: string): Promise<SearchResponse> {
   const budget = trimmed.match(/(?:under|below|less than)\s*\$?\d+/i)?.[0];
   const summary = ranked.length
     ? `I compared price, shopper feedback, and retailer value${budget ? ` against your ${budget.toLowerCase()} limit` : ""}. ${ranked[0].name} is the strongest overall match.`
-    : "I did not find listings from retailers Scout can verify for this search. Try broadening the request or changing the budget.";
+    : "I did not find listings from retailers ShopPulse can verify for this search. Try broadening the request or changing the budget.";
   const response: SearchResponse = {
     query: trimmed,
     intent: budget ? `Shopping match with a ${budget.toLowerCase()} target` : "Shopping match tailored to your request",

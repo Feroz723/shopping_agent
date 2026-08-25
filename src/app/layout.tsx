@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Scout | AI shopping agent",
+  title: "ShopPulse | AI Shopping Agent",
   description: "A calmer way to find the products worth buying.",
 };
 

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   const lastResortRaw = params.get("u");
 
   let safeLastResort: string | null = null;
-  if (lastResortRaw && /^https:\/\//i.test(lastResortRaw)) {
+  if (lastResortRaw && /^https?:\/\//i.test(lastResortRaw)) {
     try {
       const parsed = new URL(lastResortRaw);
       if (!parsed.hostname.endsWith("google.com")) safeLastResort = lastResortRaw;
@@ -73,8 +73,13 @@ export async function GET(request: NextRequest) {
   }
 
   let target: string | null = null;
+  // If a valid direct URL is provided via lastResort (u), prioritize it to ensure direct product landing
+  if (safeLastResort) {
+    target = safeLastResort;
+  }
+
   const key = process.env.SERPAPI_API_KEY;
-  if (pid) {
+  if (!target && pid) {
     const cached = getResolvedLink(pid);
     if (cached) target = cached;
   }
