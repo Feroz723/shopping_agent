@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "npx tsx src/lib/__tests__/search.test.ts"
   },
   "dependencies": {
     "@dvishal485/flipkart_scraper": "^0.5.0",
