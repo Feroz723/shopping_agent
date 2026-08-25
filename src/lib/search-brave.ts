@@ -97,7 +97,8 @@ export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
       if (href) urls.push(href.startsWith("http") ? href : href.startsWith("//") ? `https:${href}` : `https://${href}`);
     });
     if (urls.length === 0) {
-      $("a[href*='amazon.'], a[href*='flipkart.'], a[href*='myntra.'], a[href*='walmart.'], a[href*='target.'], a[href*='nike.']").each((_, el) => {
+      const selector = "a[href*='amazon.'], a[href*='flipkart.'], a[href*='myntra.'], a[href*='walmart.'], a[href*='target.'], a[href*='nike.']";
+      $(selector).each((_, el) => {
         let href = $(el).attr("href");
         if (!href) return;
         if (href.includes("uddg=")) {
@@ -110,7 +111,8 @@ export async function searchDuckDuckGoLinks(query: string): Promise<string[]> {
         if (href && href.startsWith("http")) urls.push(href);
       });
     }
-    return urls.filter((url) => /amazon|flipkart|myntra|ajio|nykaa|tatacliq|croma|reliance|walmart|target|nike|adidas|puma|zappos|ebay/i.test(url)).slice(0, 20);
+    const retailerRegex = /amazon|flipkart|myntra|ajio|nykaa|tatacliq|croma|reliance|walmart|target|nike|adidas|puma|zappos|ebay/i;
+    return urls.filter((url) => retailerRegex.test(url)).slice(0, 20);
   } catch {
     return [];
   }

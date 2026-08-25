@@ -112,32 +112,73 @@ export default function Home() {
   return (
     <main>
       <nav className="nav shell">
-        <a className="brand" href="#top" aria-label="ShopPulse home"><span className="brand-mark">S</span>ShopPulse</a>
-        <div className="nav-links"><a href="#how-it-works">How it works</a><button className="save-button">Sign in</button></div>
+        <a className="brand" href="#top" aria-label="ShopPulse home">
+          <span className="brand-mark">S</span>ShopPulse
+        </a>
+        <div className="nav-links">
+          <a href="#how-it-works">How it works</a>
+          <button className="save-button">Sign in</button>
+        </div>
       </nav>
 
       <section className={`hero shell ${result ? "hero-compact" : ""}`} id="top">
         <p className="eyebrow"><span /> AI shopping, without the hunt</p>
         <h1>Find the good stuff.<br /><em>Skip the noise.</em></h1>
-        <p className="hero-copy">Tell ShopPulse what you need. It weighs price, real shopper feedback, and retailer value to surface the right options.</p>
+        <p className="hero-copy">
+          Tell ShopPulse what you need. It weighs price, real shopper feedback, and retailer value.
+        </p>
         <form className="search-box" onSubmit={submit}>
           <span className="search-icon" aria-hidden="true">⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try “shoes under 1000 rupees”" aria-label="What are you shopping for?" />
-          <button type="submit" disabled={loading || query.trim().length < 3}>{loading ? "Searching..." : "Search"}<span aria-hidden="true">→</span></button>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Try “shoes under 1000 rupees”"
+            aria-label="What are you shopping for?"
+          />
+          <button type="submit" disabled={loading || query.trim().length < 3}>
+            {loading ? "Searching..." : "Search"}<span aria-hidden="true">→</span>
+          </button>
         </form>
-        {!result && <div className="suggestions"><span>Try one:</span>{suggestions.map((suggestion) => <button key={suggestion} onClick={() => { setQuery(suggestion); search(suggestion); }}>{suggestion}</button>)}</div>}
+        {!result && (
+          <div className="suggestions">
+            <span>Try one:</span>
+            {suggestions.map((suggestion) => (
+              <button key={suggestion} onClick={() => { setQuery(suggestion); search(suggestion); }}>
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
         {error && <p className="error-message">{error}</p>}
       </section>
 
-      {loading && <section className="shell loading-state" aria-live="polite"><div className="radar" /><p>Checking prices, reviews, and retailer value...</p></section>}
+      {loading && (
+        <section className="shell loading-state" aria-live="polite">
+          <div className="radar" />
+          <p>Checking prices, reviews, and retailer value...</p>
+        </section>
+      )}
 
       {result && !loading && (
         <section className="results shell" aria-live="polite" id="results">
           <div className="results-heading">
-            <div><p className="eyebrow"><span /> Your shopping report</p><h2>Top matches for <em>“{result.query}”</em></h2></div>
-            <p className="source-label">{result.source === "live" ? `${filtered.length} of ${result.products.length} verified listings` : `${filtered.length} of ${result.products.length} demo listings`}</p>
+            <div>
+              <p className="eyebrow"><span /> Your shopping report</p>
+              <h2>Top matches for <em>“{result.query}”</em></h2>
+            </div>
+            <p className="source-label">
+              {result.source === "live"
+                ? `${filtered.length} of ${result.products.length} verified listings`
+                : `${filtered.length} of ${result.products.length} demo listings`}
+            </p>
           </div>
-          <div className="insight-card"><div className="spark">✦</div><div><p className="insight-label">ShopPulse’s take</p><p>{result.summary}</p></div></div>
+          <div className="insight-card">
+            <div className="spark">✦</div>
+            <div>
+              <p className="insight-label">ShopPulse’s take</p>
+              <p>{result.summary}</p>
+            </div>
+          </div>
 
           {result.products.length > 0 && (
             <div className="filters-bar">
@@ -198,8 +239,32 @@ export default function Home() {
         </section>
       )}
 
-      {!result && !loading && <section className="trust shell" id="how-it-works"><p>BUILT FOR BETTER BUYING</p><div><article><strong>01</strong><h2>Say what matters</h2><span>Budget, use case, brand, or a very specific wish.</span></article><article><strong>02</strong><h2>We do the sorting</h2><span>ShopPulse ranks the products that make the most sense.</span></article><article><strong>03</strong><h2>Buy with confidence</h2><span>See the tradeoffs, then go straight to the retailer.</span></article></div></section>}
-      <footer className="footer shell"><span>© 2026 ShopPulse</span><span>Prices and availability may change at retailer checkout.</span></footer>
+      {!result && !loading && (
+        <section className="trust shell" id="how-it-works">
+          <p>BUILT FOR BETTER BUYING</p>
+          <div>
+            <article>
+              <strong>01</strong>
+              <h2>Say what matters</h2>
+              <span>Budget, use case, brand, or a very specific wish.</span>
+            </article>
+            <article>
+              <strong>02</strong>
+              <h2>We do the sorting</h2>
+              <span>ShopPulse ranks the products that make the most sense.</span>
+            </article>
+            <article>
+              <strong>03</strong>
+              <h2>Buy with confidence</h2>
+              <span>See the tradeoffs, then go straight to the retailer.</span>
+            </article>
+          </div>
+        </section>
+      )}
+      <footer className="footer shell">
+        <span>© 2026 ShopPulse</span>
+        <span>Prices and availability may change at retailer checkout.</span>
+      </footer>
     </main>
   );
 }
