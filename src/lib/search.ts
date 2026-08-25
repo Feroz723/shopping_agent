@@ -456,7 +456,7 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     if (products.length > 0 && products.length < TARGET_RESULTS) {
       products = await fillToTarget(products, trimmed, marketForQuery(trimmed));
     }
-    // Hybrid fallback: SerpAPI thin/quota → Brave/DuckDuckGo $0
+    // Zero-cost live scraping fallback (DuckDuckGo / Amazon $0 scrape)
     if (products.length < 20) {
       const market = marketForQuery(trimmed);
       const brave = await braveFallbackProducts(trimmed, market);
@@ -464,7 +464,7 @@ export async function findProducts(query: string): Promise<SearchResponse> {
         const braveSeeds: ProductSeed[] = brave
           .filter((p) => p.name && p.price)
           .map((p, i) => ({
-            id: `brave-${i}-${Date.now()}`,
+            id: `scraped-${i}-${Date.now()}`,
             name: p.name!,
             price: p.price!,
             currency: market.currency,
@@ -489,11 +489,12 @@ export async function findProducts(query: string): Promise<SearchResponse> {
     }
   } catch { products = []; }
   const hasLiveProvider = Boolean(process.env.SERPAPI_API_KEY);
+  const hasScrapedLiveResults = products.length > 0;
   const marketForRanked = marketForQuery(trimmed);
-  let ranked = rankProducts(products.length ? products : hasLiveProvider ? [] : filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed);
-  let source: "live" | "demo" = hasLiveProvider ? "live" : "demo";
+  let ranked = rankProducts(products.length ? products : filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed);
+  let source: "live" | "demo" = hasLiveProvider || hasScrapedLiveResults ? "live" : "demo";
   // Quota / provider empty fallback to demo to keep mandatory 70 UX — filtered to query
-  if (hasLiveProvider && ranked.length === 0) {
+  if ((hasLiveProvider || hasScrapedLiveResults) && ranked.length === 0) {
     ranked = rankProducts(filterDemoForQuery(demoProducts, trimmed, marketForRanked), trimmed).slice(0, TARGET_RESULTS);
     source = "demo";
   }
